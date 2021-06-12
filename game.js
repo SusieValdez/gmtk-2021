@@ -74,11 +74,21 @@ const dirs = {
   d: vec2(1, 0),
 };
 
-// function closest(vec, vecs) {
-//   let closest = vec2(Infinity);
-//   for (var i = 0; i <= vecs.length; i++)
-//     return closest;
-// }
+const closest = (obj, objs) => {
+  let closestObj = {
+    pos: vec2(Infinity),
+  };
+  for (o of objs) {
+    if (obj.pos.dist(o.pos) < obj.pos.dist(closestObj.pos)) {
+      closestObj = o;
+    }
+  }
+  return closestObj;
+};
+
+const moveTowards = (obj, pos, speed) => {
+  obj.move(pos.sub(obj.pos).unit().scale(speed));
+};
 
 layers(["floor", "objects"], "objects");
 
@@ -111,7 +121,7 @@ scene("main", () => {
     solid(),
   ]);
 
-  const ghost = add([sprite("ghost"), pos(180, 200), solid()]);
+  const ghost = add([sprite("ghost"), pos(180, 200)]);
 
   const state = {
     activePlayer: man,
@@ -146,13 +156,18 @@ scene("main", () => {
   // Other player movement
   state.otherPlayer.action(() => {
     if (state.beingCalled) {
-      state.otherPlayer.move(
-        state.activePlayer.pos
-          .sub(state.otherPlayer.pos)
-          .unit()
-          .scale(OTHER_PLAYER_SPEED)
+      moveTowards(
+        state.otherPlayer,
+        state.activePlayer.pos,
+        OTHER_PLAYER_SPEED
       );
     }
+  });
+
+  // Ghost movement
+  ghost.action(() => {
+    var closestPlayer = closest(ghost, [state.activePlayer, state.otherPlayer]);
+    moveTowards(ghost, closestPlayer.pos, GHOST_SPEED);
   });
 
   // Switching players
