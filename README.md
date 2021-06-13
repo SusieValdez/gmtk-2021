@@ -64,3 +64,11 @@
   - Barrel
   - Table
   - Chair
+
+## Other Assets
+
+Many thanks to the following for the use of their art:
+
+- Backing track from [muncheybobo](https://opengameart.org/content/winter)
+- Key & door sfx from [owlishmedia](https://opengameart.org/content/202-more-sound-effects)
+- ghost effects from [Ogrebane](https://opengameart.org/content/ghost) & [qubodup](https://opengameart.org/content/ghost-monster-voice-moaning-growling)
