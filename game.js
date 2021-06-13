@@ -5,9 +5,13 @@ kaboom({
   clearColor: [0, 0, 0, 1],
 });
 
+const isDebugging = false;
+
+debug.inspect = isDebugging;
+
 // Constants
 const TILE_WIDTH = 64;
-const PLAYER_SPEED = 200;
+const PLAYER_SPEED = isDebugging ? 1000 : 200;
 const OTHER_PLAYER_SPEED = 190;
 const GHOST_SPEED = 50;
 
@@ -113,11 +117,11 @@ scene("main", () => {
     k: [sprite("key"), area(vec2(-16), vec2(32)), INTERACTABLE],
   });
 
-  const man = add([
-    sprite("man"),
-    pos(3 * TILE_WIDTH, 23 * TILE_WIDTH),
-    solid(),
-  ]);
+  const man = add(
+    [sprite("man"), pos(3 * TILE_WIDTH, 23 * TILE_WIDTH)].concat(
+      isDebugging ? [solid()] : []
+    )
+  );
 
   const dog = add([
     sprite("dog"),
