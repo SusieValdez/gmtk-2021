@@ -5,14 +5,19 @@ kaboom({
   clearColor: [0, 0, 0, 1],
 });
 
+const isDebugging = false;
+
+debug.inspect = isDebugging;
+
 // Constants
 const TILE_WIDTH = 64;
-const PLAYER_SPEED = 200;
+const PLAYER_SPEED = isDebugging ? 1000 : 200;
 const OTHER_PLAYER_SPEED = 190;
 const GHOST_SPEED = 50;
 
 // Tags
-const INTERACTABLE = "INTERACTABLE";
+const TAG_INTERACTABLE = "TAG_INTERACTABLE";
+const TAG_KEY = "TAG_KEY";
 
 // Images
 loadRoot("images/");
@@ -34,6 +39,17 @@ loadRoot("images/");
   "bookcase",
   "bookcase-side",
 ].forEach((spriteName) => loadSprite(spriteName, spriteName + ".png"));
+
+// Audio
+loadRoot("audio/");
+loadSound("music", "Winter.mp3");
+loadSound("key-pickup", "Key_Lock_Door_29.wav");
+loadSound("door-unlock", "Key_Lock_Door_42.wav");
+loadSound("ghost-1", "ghost.wav");
+loadSound("ghost-2", "qubodup-GhostMoan01.mp3");
+loadSound("ghost-3", "qubodup-GhostMoan02.mp3");
+loadSound("ghost-4", "qubodup-GhostMoan03.mp3");
+loadSound("ghost-5", "qubodup-GhostMoan04.mp3");
 
 // Map
 const map = [
@@ -64,7 +80,7 @@ const map = [
   "#   #   #     #          #            v#",
   "#  c#   =                     v vVVVVVv#",
   "#  t#   #                     v v     v#",
-  "#   =   #     #          #VVVVV VVV   v#",
+  "# k =   #     #          #VVVVV VVV   v#",
   "#   #   #     #          #            v#",
   "-------------------[[-------------------",
 ];
@@ -92,6 +108,8 @@ const moveTowards = (obj, pos, speed) => {
   obj.move(pos.sub(obj.pos).unit().scale(speed));
 };
 
+const hasTag = (object, tag) => object._tags.indexOf(tag) >= 0;
+
 layers(["floor", "objects"], "objects");
 
 scene("main", () => {
@@ -110,14 +128,20 @@ scene("main", () => {
     v: [sprite("bookcase-side"), solid()],
     c: [sprite("chair-front"), solid()],
     t: [sprite("table"), solid()],
-    k: [sprite("key"), area(vec2(-16), vec2(32)), INTERACTABLE],
+    k: [
+      sprite("key"),
+      area(vec2(-16), vec2(28)),
+      color(1, 0, 0),
+      TAG_INTERACTABLE,
+      TAG_KEY,
+    ],
   });
 
-  const man = add([
-    sprite("man"),
-    pos(3 * TILE_WIDTH, 23 * TILE_WIDTH),
-    solid(),
-  ]);
+  const man = add(
+    [sprite("man"), pos(3 * TILE_WIDTH, 23 * TILE_WIDTH)].concat(
+      isDebugging ? [solid()] : []
+    )
+  );
 
   const dog = add([
     sprite("dog"),
@@ -134,6 +158,8 @@ scene("main", () => {
     beingCalled: false,
   };
 
+  // play("music");
+
   // Player movement
   for (const dir in dirs) {
     keyDown(dir, () => {
@@ -143,6 +169,9 @@ scene("main", () => {
 
   // Interact
   function interact(object) {
+    if (hasTag(object, TAG_KEY)) {
+      play("key-pickup");
+    }
     destroy(object);
   }
 
@@ -186,7 +215,7 @@ scene("main", () => {
   });
 
   // Set currentInteractable on collision
-  state.activePlayer.collides(INTERACTABLE, (i) => {
+  state.activePlayer.collides(TAG_INTERACTABLE, (i) => {
     state.currentInteractable = i;
   });
   state.activePlayer.action(() => {
