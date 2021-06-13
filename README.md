@@ -23,7 +23,7 @@
   - Wakes up in the spare bedroom on top floor of mansion
   - "how did I get here?" "where's buddy"
   - "BUDDY??"
-  - *hear Dog in next room"
+  - \*hear Dog in next room"
   - Player walks man into next room, sees dog chained up
   - Player walks up to Dog, [interacts] and frees dog.
   - Leaves room.
@@ -72,3 +72,4 @@ Many thanks to the following for the use of their art:
 - Backing track from [muncheybobo](https://opengameart.org/content/winter)
 - Key & door sfx from [owlishmedia](https://opengameart.org/content/202-more-sound-effects)
 - ghost effects from [Ogrebane](https://opengameart.org/content/ghost) & [qubodup](https://opengameart.org/content/ghost-monster-voice-moaning-growling)
+- "Well Done" Copyright 2013 by Iwan Gabovitch <qubodup.net> multi-licensed under Creative Commons Attribution 3.0 license <http://creativecommons.org/licenses/by/3.0/legalcode> and/or GPLv3+ <http://www.gnu.org/licenses/gpl.html>

@@ -14,15 +14,17 @@ const TILE_WIDTH = 64;
 const PLAYER_SPEED = isDebugging ? 1000 : 200;
 const OTHER_PLAYER_SPEED = 190;
 const GHOST_SPEED = 50;
-const BOUNCY_GHOST_SPEED = 150;
+const BOUNCY_GHOST_SPEED = 90;
 
 // Tags
 const TAG_INTERACTABLE = "TAG_INTERACTABLE";
 const TAG_KEY = "TAG_KEY";
 const TAG_WALL = "TAG_WALL";
+const TAG_GHOST = "TAG_GHOST";
 const TAG_BOUNCY_GHOST = "TAG_BOUNCY_GHOST";
 const TAG_BOUNCY_HORIZONTAL_GHOST = "TAG_BOUNCY_HORIZONTAL_GHOST";
 const TAG_BOUNCY_VERTICAL_GHOST = "TAG_BOUNCY_VERTICAL_GHOST";
+const TAG_EXIT = "TAG_EXIT";
 
 // Images
 loadRoot("images/");
@@ -56,6 +58,7 @@ loadSound("ghost-2", "qubodup-GhostMoan01.mp3");
 loadSound("ghost-3", "qubodup-GhostMoan02.mp3");
 loadSound("ghost-4", "qubodup-GhostMoan03.mp3");
 loadSound("ghost-5", "qubodup-GhostMoan04.mp3");
+loadSound("applause", "Well Done CCBY3.ogg");
 
 // Map
 const map = [
@@ -83,12 +86,12 @@ const map = [
   "#   #   #   G   G   G   G      #VVVv  v#",
   "#---#   #-----#----------#-----#  Gv  v#",
   "#bB #   #     #          #VVVVVV   V  v#",
-  "#g  #   #     #          #g G         v#",
-  "#  c#   =                     v vVVVVVv#",
+  "#   #   #     #          #g G         v#",
+  "#  c#   #                     v vVVVVVv#",
   "#  t#   #                     v vg    v#",
   "# k =   #     #          #VVVVV VVV   v#",
   "#   #   #     #          #            v#",
-  "-------------------[[-------------------",
+  "-------------------55-------------------",
 ];
 // Movement directions
 const dirs = {
@@ -118,12 +121,13 @@ const hasTag = (object, tag) => object._tags.indexOf(tag) >= 0;
 
 layers(["floor", "objects"], "objects");
 
-scene("main", () => {
+scene("main", ({ deathCount }) => {
   add([sprite("floor"), pos(0, 0)]);
   addLevel(map, {
     width: TILE_WIDTH,
     height: TILE_WIDTH,
     "[": [sprite("door-front")],
+    5: [sprite("door-front"), TAG_EXIT],
     "=": [sprite("door-side")],
     "-": [sprite("wood-wall-front"), solid(), TAG_WALL],
     "#": [sprite("wood-wall-side"), solid(), TAG_WALL],
@@ -136,8 +140,9 @@ scene("main", () => {
     t: [sprite("table"), solid(), TAG_WALL],
     g: [
       sprite("ghost-2"),
-      area(vec2(20, 20), vec2(44, 44)),
+      area(vec2(16, 16), vec2(48, 48)),
       solid(),
+      TAG_GHOST,
       TAG_BOUNCY_GHOST,
       TAG_BOUNCY_HORIZONTAL_GHOST,
       {
@@ -146,8 +151,9 @@ scene("main", () => {
     ].concat(isDebugging ? [color(1, 0, 0)] : []),
     G: [
       sprite("ghost-2"),
-      area(vec2(20, 20), vec2(44, 44)),
+      area(vec2(16, 16), vec2(48, 48)),
       solid(),
+      TAG_GHOST,
       TAG_BOUNCY_GHOST,
       TAG_BOUNCY_VERTICAL_GHOST,
       {
@@ -175,20 +181,44 @@ scene("main", () => {
     solid(),
   ]);
 
-  const ghost = add([sprite("ghost"), pos(180, 200)]);
+  add([
+    text(
+      "WASD: move\nQ: call dog \nSPACE: switch to dog mode\nE: pick up items\nExit house to win!"
+    ),
+    pos(2 * TILE_WIDTH, 24 * TILE_WIDTH),
+  ]);
+
+  const ghost = add([sprite("ghost"), pos(180, 200), TAG_GHOST]);
 
   const state = {
     activePlayer: man,
     otherPlayer: dog,
     currentInteractable: undefined,
     beingCalled: false,
+    playerPaused: false,
   };
 
-  // play("music");
+  const startTime = new Date();
+
+  const music = play("music");
+
+  const die = () => {
+    state.playerPaused = true;
+    camShake(50);
+    music.stop();
+    var randomSong = Math.floor(Math.random() * 5) + 1;
+    play("ghost-" + randomSong);
+    setTimeout(() => {
+      go("main", { deathCount: deathCount + 1 });
+    }, 1000);
+  };
 
   // Player movement
   for (const dir in dirs) {
     keyDown(dir, () => {
+      if (state.playerPaused) {
+        return;
+      }
       state.activePlayer.move(dirs[dir].unit().scale(PLAYER_SPEED));
     });
   }
@@ -242,6 +272,19 @@ scene("main", () => {
     g.dir *= -1;
   });
 
+  state.activePlayer.collides(TAG_GHOST, (_g) => {
+    die();
+  });
+
+  state.otherPlayer.collides(TAG_GHOST, (_g) => {
+    die();
+  });
+
+  // Win condition
+  state.activePlayer.collides(TAG_EXIT, (_g) => {
+    go("win", { startTime, deathCount });
+  });
+
   // Switching players
   keyPress("space", () => {
     if (state.activePlayer === man) {
@@ -276,4 +319,15 @@ scene("main", () => {
   dog.action(dog.resolve);
 });
 
-start("main");
+scene("win", ({ startTime, deathCount }) => {
+  const timeTaken = (new Date() - startTime) / 1000;
+  play("applause");
+  add([
+    text(
+      `You won!\nTime taken (s): ${timeTaken}\nDeath count: ${deathCount}`,
+      32
+    ),
+  ]);
+});
+
+start("main", { deathCount: 0 });
