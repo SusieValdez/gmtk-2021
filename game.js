@@ -14,10 +14,15 @@ const TILE_WIDTH = 64;
 const PLAYER_SPEED = isDebugging ? 1000 : 200;
 const OTHER_PLAYER_SPEED = 190;
 const GHOST_SPEED = 50;
+const BOUNCY_GHOST_SPEED = 150;
 
 // Tags
 const TAG_INTERACTABLE = "TAG_INTERACTABLE";
 const TAG_KEY = "TAG_KEY";
+const TAG_WALL = "TAG_WALL";
+const TAG_BOUNCY_GHOST = "TAG_BOUNCY_GHOST";
+const TAG_BOUNCY_HORIZONTAL_GHOST = "TAG_BOUNCY_HORIZONTAL_GHOST";
+const TAG_BOUNCY_VERTICAL_GHOST = "TAG_BOUNCY_VERTICAL_GHOST";
 
 // Images
 loadRoot("images/");
@@ -25,6 +30,7 @@ loadRoot("images/");
   "man",
   "dog",
   "ghost",
+  "ghost-2",
   "key",
   "floor",
   "door-front",
@@ -54,32 +60,32 @@ loadSound("ghost-5", "qubodup-GhostMoan04.mp3");
 // Map
 const map = [
   "++++++++++++++++++++++++++++++++++++++++",
-  "+       +             +       +        +",
+  "+       +       g     +       +        +",
   "+   +++  +++++++++  + + +++++ +  ++++ ++",
-  "+++    +    +       +   +       +   +  +",
+  "+++    +    +       +   +       + G +  +",
   "+ ++    +++ ++ +++++++++++++++++    +  +",
-  "+   +   +   +                  +       +",
+  "+   +   +  G+         g        +       +",
   "+   +   +   +++++++++++++  +++ +++  ++ +",
   "+++++   +                    +   +     +",
-  "#---#-[-#----------------------#--[----#",
-  "#Bb #   #                      #       #",
-  "#   #   #   ttttttttttttttt    #       #",
-  "#   #   #                      =       #",
-  "#   #   #                      #       #",
+  "#---#-[-#----------------------#----[--#",
+  "#Bb #   #              G       #       #",
+  "#   #   #   ttt tttGttt ttt    #       #",
+  "#   #   #      G               =       #",
+  "#   #   #  G                   #       #",
   "#---#   #-----[----------------#-------#",
-  "#   #   #                      #VVVVVVv#",
-  "#   #   #   ccccccccccccccc    =      v#",
-  "# c #   #   ttttttttttttttt    #VVVV  v#",
-  "#Bt #   #                 t    #      v#",
+  "#   #   #          b           #VVVVVVv#",
+  "#   #   #g  ccccccccccccccc  G =    G v#",
+  "# c #   #   tttttttttttttttg   #VVVV  v#",
+  "#Bt #   #  G              tG   # G    v#",
   "#---#   #   cccccccccccccct    #  vVVVv#",
-  "#   #   #   ttttttttttttttt    #  V   v#",
-  "#   #   #                      #      v#",
-  "#   #   #                      #VVVv  v#",
-  "#---#   #-----#----------#-----#   v  v#",
+  "#   #   #g  tttttttttttttttg   #  V G v#",
+  "#   #   #     G   G   G   G    #      v#",
+  "#   #   #   G   G   G   G      #VVVv  v#",
+  "#---#   #-----#----------#-----#  Gv  v#",
   "#bB #   #     #          #VVVVVV   V  v#",
-  "#   #   #     #          #            v#",
+  "#g  #   #     #          #g G         v#",
   "#  c#   =                     v vVVVVVv#",
-  "#  t#   #                     v v     v#",
+  "#  t#   #                     v vg    v#",
   "# k =   #     #          #VVVVV VVV   v#",
   "#   #   #     #          #            v#",
   "-------------------[[-------------------",
@@ -119,15 +125,35 @@ scene("main", () => {
     height: TILE_WIDTH,
     "[": [sprite("door-front")],
     "=": [sprite("door-side")],
-    "-": [sprite("wood-wall-front"), solid()],
-    "#": [sprite("wood-wall-side"), solid()],
-    "+": [sprite("garden-wall"), solid()],
-    b: [sprite("barrel"), solid()],
-    B: [sprite("bed"), solid()],
-    V: [sprite("bookcase"), solid()],
-    v: [sprite("bookcase-side"), solid()],
-    c: [sprite("chair-front"), solid()],
-    t: [sprite("table"), solid()],
+    "-": [sprite("wood-wall-front"), solid(), TAG_WALL],
+    "#": [sprite("wood-wall-side"), solid(), TAG_WALL],
+    "+": [sprite("garden-wall"), solid(), TAG_WALL],
+    b: [sprite("barrel"), area(vec2(12, 0), vec2(52, 64)), solid(), TAG_WALL],
+    B: [sprite("bed"), area(vec2(16, 0), vec2(48, 64)), solid(), TAG_WALL],
+    V: [sprite("bookcase"), solid(), TAG_WALL],
+    v: [sprite("bookcase-side"), solid(), TAG_WALL],
+    c: [sprite("chair-front"), area(vec2(16), vec2(48)), solid(), TAG_WALL],
+    t: [sprite("table"), solid(), TAG_WALL],
+    g: [
+      sprite("ghost-2"),
+      area(vec2(20, 20), vec2(44, 44)),
+      solid(),
+      TAG_BOUNCY_GHOST,
+      TAG_BOUNCY_HORIZONTAL_GHOST,
+      {
+        dir: 1,
+      },
+    ].concat(isDebugging ? [color(1, 0, 0)] : []),
+    G: [
+      sprite("ghost-2"),
+      area(vec2(20, 20), vec2(44, 44)),
+      solid(),
+      TAG_BOUNCY_GHOST,
+      TAG_BOUNCY_VERTICAL_GHOST,
+      {
+        dir: 1,
+      },
+    ].concat(isDebugging ? [color(0, 1, 0)] : []),
     k: [
       sprite("key"),
       area(vec2(-16), vec2(28)),
@@ -201,6 +227,19 @@ scene("main", () => {
   ghost.action(() => {
     var closestPlayer = closest(ghost, [state.activePlayer, state.otherPlayer]);
     moveTowards(ghost, closestPlayer.pos, GHOST_SPEED);
+  });
+
+  // Ghost-2 behaviour
+  action(TAG_BOUNCY_HORIZONTAL_GHOST, (g) => {
+    g.move(g.dir * BOUNCY_GHOST_SPEED, 0);
+  });
+
+  action(TAG_BOUNCY_VERTICAL_GHOST, (g) => {
+    g.move(0, g.dir * BOUNCY_GHOST_SPEED);
+  });
+
+  collides(TAG_BOUNCY_GHOST, TAG_WALL, (g) => {
+    g.dir *= -1;
   });
 
   // Switching players
